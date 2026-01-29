@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>In The Heights Player</title>
+  <style>
+    body {
+      background: #222;
+      color: #fff;
+      text-align: center;
+      font-family: Arial, sans-serif;
+    }
+    #video-container {
+      position: relative;
+      display: inline-block;
+    }
+    video {
+      width: 600px;
+      height: auto;
+    }
+    /* Subtitle styling */
+    ::cue {
+      font-size: var(--subtitle-size, 20px);
+      text-align: center;
+      position: relative;
+      top: var(--subtitle-position, 0px);
+    }
+  </style>
+</head>
+<body>
+  <h2>In The Heights (2021)</h2>
+  <div id="video-container">
+    <video id="video" controls preload="metadata">
+      <source src="Media/In.The.Heights.2021.1080p.WEBRip.x264.AAC5.1-[YTS.MX].mp4" type="video/mp4">
+
+      <!-- Preloaded subtitle tracks -->
+      <track src="Subtitles/In.The.Heights.2021.1080p.WEBRip.x264.AAC5.1-[YTS.MX].srt" kind="subtitles" srclang="en" label="Default">
+      <track src="Subtitles/English.eng.srt" kind="subtitles" srclang="en" label="English">
+      <track src="Subtitles/English [SDH].eng.srt" kind="subtitles" srclang="en" label="English SDH">
+    </video>
+  </div>
+  <br><br>
+
+  <!-- Dropdown to select subtitle track -->
+  <label for="subtitleSelect">Choose Subtitle Track: </label>
+  <select id="subtitleSelect">
+    <option value="">None</option>
+    <option value="0">Default</option>
+    <option value="1">English</option>
+    <option value="2">English SDH</option>
+  </select>
+  <br><br>
+
+  <!-- Subtitle controls -->
+  <label for="subtitleSize">Subtitle Size: </label>
+  <input type="number" id="subtitleSize" value="20"> px
+  <br><br>
+
+  <label for="subtitlePosition">Subtitle Position (vertical offset): </label>
+  <input type="number" id="subtitlePosition" value="0"> px
+  <br><br>
+
+  <!-- Fullscreen button -->
+  <button id="fullscreenBtn">Go Fullscreen</button>
+
+  <script>
+    const video = document.getElementById('video');
+    const subtitleSelect = document.getElementById('subtitleSelect');
+    const subtitleSize = document.getElementById('subtitleSize');
+    const subtitlePosition = document.getElementById('subtitlePosition');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+
+    // Convert SRT to VTT (Netlify serves .srt, browser needs .vtt)
+    async function convertTrackToVtt(trackElement) {
+      const response = await fetch(trackElement.src);
+      const srtText = await response.text();
+      const vttText = "WEBVTT\n\n" + srtText
+        .replace(/\r+/g, '')
+        .replace(/^\d+\s*\n/gm, '') // remove sequence numbers
+        .replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2');
+      const blob = new Blob([vttText], { type: 'text/vtt' });
+      trackElement.src = URL.createObjectURL(blob);
+    }
+
+    // Convert all preloaded tracks
+    video.querySelectorAll('track').forEach(track => convertTrackToVtt(track));
+
+    // Switch subtitle track without restarting video
+    subtitleSelect.addEventListener('change', function() {
+      for (const track of video.textTracks) {
+        track.mode = 'disabled';
+      }
+      if (this.value !== "") {
+        video.textTracks[this.value].mode = 'showing';
+      }
+    });
+
+    // Adjust subtitle size
+    subtitleSize.addEventListener('input', function() {
+      document.documentElement.style.setProperty('--subtitle-size', this.value + 'px');
+    });
+
+    // Adjust subtitle position
+    subtitlePosition.addEventListener('input', function() {
+      document.documentElement.style.setProperty('--subtitle-position', this.value + 'px');
+    });
+
+    // Fullscreen option
+    fullscreenBtn.addEventListener('click', function() {
+      if (video.requestFullscreen) {
+        video.requestFullscreen();
+      } else if (video.webkitRequestFullscreen) {
+        video.webkitRequestFullscreen();
+      } else if (video.msRequestFullscreen) {
+        video.msRequestFullscreen();
+      }
+    });
+
+    // Optional: keyboard shortcut to cycle subtitles
+    document.addEventListener('keydown', function(e) {
+      if (e.key.toLowerCase() === 's') {
+        let currentIndex = subtitleSelect.selectedIndex;
+        let nextIndex = (currentIndex + 1) % subtitleSelect.options.length;
+        subtitleSelect.selectedIndex = nextIndex;
+        subtitleSelect.dispatchEvent(new Event('change'));
+      }
+    });
+  </script>
+</body>
+</html>
